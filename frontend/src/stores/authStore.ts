@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../utils/api';
+import api from '@/lib/api';
 
 interface User {
   id: string;
@@ -9,34 +9,37 @@ interface User {
 }
 
 interface AuthState {
-  token: string | null;
   user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  loadFromStorage: () => void;
+  fetchUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: localStorage.getItem('rf_token'),
-  user: JSON.parse(localStorage.getItem('rf_user') || 'null'),
+  user: null,
+  token: localStorage.getItem('token'),
+  isAuthenticated: !!localStorage.getItem('token'),
 
   login: async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { token, user } = res.data;
-    localStorage.setItem('rf_token', token);
-    localStorage.setItem('rf_user', JSON.stringify(user));
-    set({ token, user });
+    const { data } = await api.post('/auth/login', { email, password });
+    localStorage.setItem('token', data.token);
+    set({ user: data.user, token: data.token, isAuthenticated: true });
   },
 
   logout: () => {
-    localStorage.removeItem('rf_token');
-    localStorage.removeItem('rf_user');
-    set({ token: null, user: null });
+    localStorage.removeItem('token');
+    set({ user: null, token: null, isAuthenticated: false });
   },
 
-  loadFromStorage: () => {
-    const token = localStorage.getItem('rf_token');
-    const user = JSON.parse(localStorage.getItem('rf_user') || 'null');
-    set({ token, user });
+  fetchUser: async () => {
+    try {
+      const { data } = await api.get('/auth/me');
+      set({ user: data.user, isAuthenticated: true });
+    } catch {
+      localStorage.removeItem('token');
+      set({ user: null, token: null, isAuthenticated: false });
+    }
   },
 }));
