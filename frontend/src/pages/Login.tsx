@@ -1,54 +1,69 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { LogIn, Loader2, UserPlus, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Building2 } from 'lucide-react';
 
 export default function Login() {
+  const navigate = useNavigate();
+  const login = useAuthStore(s => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const login = useAuthStore((s) => s.login);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Welcome to RentFlow!');
       navigate('/');
+      toast.success('Welcome back!');
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Login failed');
+      const msg = err?.response?.data?.detail || 'Invalid credentials';
+      if (msg.includes('verify')) {
+        toast.error('Please verify your email first');
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-800 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-500 rounded-2xl mb-4">
-            <Building2 className="w-8 h-8 text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-sm bg-white rounded-xl border shadow-sm p-8 space-y-6">
+        <div className="text-center">
+          <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
+            <LogIn className="h-7 w-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-primary-500">RentFlow</h1>
-          <p className="text-gray-500 mt-1">Property Management System</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
+          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="label">Email</label>
-            <input type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@property.local" required />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none transition-colors" placeholder="you@example.com" />
           </div>
           <div>
-            <label className="label">Password</label>
-            <input type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" required />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-gray-700">Password</label>
+              <Link to="/forgot-password" className="text-xs text-accent hover:underline">Forgot password?</Link>
+            </div>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none transition-colors" placeholder="Enter password" />
           </div>
-          <button type="submit" disabled={loading} className="btn-primary w-full py-3 disabled:opacity-50">
+          <button type="submit" disabled={loading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-white font-medium text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-6">Default: admin@property.local / admin123</p>
+        <div className="text-center text-sm text-gray-500">
+          Don't have an account? <Link to="/register" className="text-accent font-medium hover:underline">Sign up</Link>
+        </div>
       </div>
     </div>
   );
